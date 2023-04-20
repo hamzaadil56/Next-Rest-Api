@@ -1,39 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import sql from "@/db";
 
-import { Pool } from "pg";
+// import { Kysely, PostgresDialect, Generated } from "kysely";
 
-import { Kysely, PostgresDialect, Generated } from "kysely";
-import Head from "@/app/head";
+// interface UsersTable {
+//   clientname: string;
+//   clientemail: string;
+// }
 
-interface UsersTable {
-  clientname: string;
-  clientemail: string;
-}
-
-interface Database {
-  users: UsersTable;
-}
+// interface Database {
+//   users: UsersTable;
+// }
 
 export async function POST(request: NextRequest) {
-  const db = new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: new Pool({
-        ssl: true,
-        connectionString: process.env.NEON_DATABASE_URL!,
-      }),
-    }),
-  });
   const bodyRequest = await request.json();
   const { clientname, clientemail } = bodyRequest;
   if (!clientemail || !clientname) {
     throw new Error("Please add client Email");
   }
 
-  const oldUser = await db
-    .selectFrom("users")
-    .where("clientemail", "=", `${clientemail}`)
-    .executeTakeFirst();
+  // const oldUser = await db
+  //   .selectFrom("users")
+  //   .where("clientemail", "=", `${clientemail}`)
+  //   .executeTakeFirst();
+
+  const oldUsers =
+    await sql`select * from users where clientemail = ${clientemail}`;
+  const oldUser = oldUsers[0];
   if (oldUser) {
     return NextResponse.json(
       {
@@ -44,11 +38,19 @@ export async function POST(request: NextRequest) {
       }
     );
   }
-  const user = await db
-    .insertInto("users")
-    .values({ clientemail: clientemail, clientname: clientname })
-    .returningAll()
-    .executeTakeFirst();
+  // const user = await db
+  //   .insertInto("users")
+  //   .values({ clientemail: clientemail, clientname: clientname })
+  //   .returningAll()
+  //   .executeTakeFirst();
+
+  const users = await sql`INSERT INTO
+  "users" ("clientemail", "clientname")
+VALUES
+  (${clientemail}, ${clientname})
+RETURNING
+  *`;
+  const user = users[0];
   const token = jwt.sign(
     {
       exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days expiry
