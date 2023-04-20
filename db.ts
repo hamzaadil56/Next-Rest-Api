@@ -8,6 +8,7 @@ const sql = postgres(process.env.NEON_DATABASE_URL!, {
   password: process.env.PGPASSWORD, // Password of database user
   idle_timeout: 30,
   connect_timeout: 30,
+  ssl: "require",
 });
 
 export default sql;
